@@ -24,7 +24,7 @@ class FishBinaryDataset(torch.utils.data.Dataset):
         return img, label
 
 
-def get_dataloaders(data_dir, batch_size=32, val_split=0.2, image_size=224, num_workers=4):
+def get_dataloaders(data_dir, batch_size=32, val_split=0.2, image_size=50, num_workers=4):
     """
     Luo train ja validation dataloaderit kuvien binary-luokitteluun (fish vs not fish)
     Kuvasuhde säilytetään Resize + Crop -kombinaatiolla.

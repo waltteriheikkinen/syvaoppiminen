@@ -6,10 +6,11 @@ import torch.nn as nn
 import torch.optim as optim
 import sys
 import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # Lisää projektin juuri polkuun
 from src.fish_data import get_dataloaders
 from src.model import get_model
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # Lisää projektin juuri polkuun
+
 
 
 class SimpleCNN(nn.Module):

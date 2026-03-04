@@ -1,0 +1,9 @@
+.venv
+__pycache__
+logs
+trials*
+*.jpg
+*.zip
+~$*.pptx
+~$*.docx
+~$*.xlsx

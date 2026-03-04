@@ -38,13 +38,19 @@ def get_dataloaders(data_dir, batch_size=32, val_split=0.2, image_size=50, num_w
     train_transforms = transforms.Compose([
         ResizeWithPadding(image_size),
         transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(10),
+        transforms.RandomRotation(15),               # ±15° kierto
+        transforms.ColorJitter(brightness=0.2,       # Brightness ±20%
+                           contrast=0.2,             # Contrast ±20%
+                           saturation=0.2,           # Saturation ±20%
+                           hue=0.05),                # Hue ±5%
+        transforms.RandomAffine(degrees=0,           # Ei lisäkiertoa, vain translate/skew
+                            translate=(0.1, 0.1)),   # Siirto ±10% x- ja y-suunnassa
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406],
                              [0.229, 0.224, 0.225])
     ])
 
-    # Validointi: resize + center crop (ei augmentaatiota)
+    # Validointi
     val_transforms = transforms.Compose([
         ResizeWithPadding(image_size),
         transforms.ToTensor(),

@@ -27,7 +27,7 @@ def imshow(img, title=None):
 
 
 def main():
-    data_dir = r"C:\Users\waltteri\projects\kurssit\syvaoppiminen\project_work\data\RODI-DATA\RODI-DATA\Train"
+    data_dir = r"C:\Users\miika\Desktop\koulujutut\deeplearning\syvaoppiminen\data\RODI-DATA\RODI-DATA\Train"
     train_loader, val_loader = get_dataloaders(data_dir, image_size=50, batch_size=32)
 
     # Tulostetaan shape ja muutama esimerkkikuva treenistä

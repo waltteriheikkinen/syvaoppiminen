@@ -36,8 +36,7 @@ def get_dataloaders(data_dir, batch_size=32, val_split=0.2, image_size=224, num_
 
     # Treeni: resize, satunnainen crop, augmentointi
     train_transforms = transforms.Compose([
-        transforms.Resize(image_size),              # lyhyempi sivu = image_size
-        transforms.RandomResizedCrop(image_size),  # crop neliöön satunnaisesti
+        ResizeWithPadding(image_size),
         transforms.RandomHorizontalFlip(),
         transforms.RandomRotation(10),
         transforms.ToTensor(),
@@ -47,8 +46,7 @@ def get_dataloaders(data_dir, batch_size=32, val_split=0.2, image_size=224, num_
 
     # Validointi: resize + center crop (ei augmentaatiota)
     val_transforms = transforms.Compose([
-        transforms.Resize(image_size),
-        transforms.CenterCrop(image_size),
+        ResizeWithPadding(image_size),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406],
                              [0.229, 0.224, 0.225])
@@ -85,3 +83,39 @@ def get_dataloaders(data_dir, batch_size=32, val_split=0.2, image_size=224, num_
                             num_workers=num_workers)
 
     return train_loader, val_loader
+
+
+import torch
+from torchvision import transforms
+from PIL import Image
+
+class ResizeWithPadding:
+    def __init__(self, target_size=50):
+        self.target_size = target_size
+
+    def __call__(self, img):
+        w, h = img.size
+        
+        # Skaalauskerroin
+        scale = self.target_size / max(w, h)
+        new_w = int(w * scale)
+        new_h = int(h * scale)
+
+        # Resize säilyttäen aspect ratio
+        img = img.resize((new_w, new_h), Image.BILINEAR)
+
+        # Luodaan musta taustakuva 50x50
+        new_img = Image.new("RGB", (self.target_size, self.target_size))
+        
+        # Keskitetään kuva
+        paste_x = (self.target_size - new_w) // 2
+        paste_y = (self.target_size - new_h) // 2
+        new_img.paste(img, (paste_x, paste_y))
+
+        return new_img
+
+
+transform = transforms.Compose([
+    ResizeWithPadding(50),
+    transforms.ToTensor()
+])

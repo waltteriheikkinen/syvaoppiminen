@@ -21,69 +21,100 @@ class SimpleCNN(nn.Module):
     def __init__(self, num_classes=2):
         super(SimpleCNN, self).__init__()
 
-        # Ensimmäinen konvoluutiokerros: 3-kanavaa -> 32 kanavaa
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=5, padding=2)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-
-        # Toinen konvoluutiokerros: 32 -> 64 kanavaa
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=5, padding=2)
+        self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=5, padding=2)
 
-        # FC-kerrokset
-        # 2 poolauksen jälkeen 50x50 -> 25x25 -> 12x12
         self.fc1 = nn.Linear(64 * 12 * 12, 128)
         self.fc2 = nn.Linear(128, num_classes)
 
-        # Aktivointi ja dropout
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.5)
 
     def forward(self, x):
-        # Conv + ReLU + Pool
-        x = self.pool(self.relu(self.conv1(x)))  # 50x50 -> 25x25
-        x = self.pool(self.relu(self.conv2(x)))  # 25x25 -> 12x12
-
-        # Flatten
+        x = self.pool(self.relu(self.conv1(x)))
+        x = self.pool(self.relu(self.conv2(x)))
         x = x.view(-1, 64 * 12 * 12)
-
-        # Fully connected
         x = self.dropout(self.relu(self.fc1(x)))
         x = self.fc2(x)
-
         return x
 
-
 def get_model(device="cpu", lr=1e-3, num_classes=2):
-    """
-    Luodaan SimpleCNN, siirretään device:lle ja palautetaan optimizer + loss function.
-    """
     model = SimpleCNN(num_classes=num_classes)
     model = model.to(device)
-
-    # Loss function
     criterion = nn.CrossEntropyLoss()
-
-    # Optimizer
     optimizer = optim.Adam(model.parameters(), lr=lr)
-
     return model, criterion, optimizer
 
+def train_one_epoch(model, train_loader, criterion, optimizer, device):
+    model.train()
+    running_loss = 0.0
+    correct = 0
+    total = 0
+
+    for images, labels in train_loader:
+        images, labels = images.to(device), labels.to(device)
+
+        optimizer.zero_grad()
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+        running_loss += loss.item() * images.size(0)
+        _, predicted = torch.max(outputs, 1)
+        correct += (predicted == labels).sum().item()
+        total += labels.size(0)
+
+    epoch_loss = running_loss / total
+    epoch_acc = correct / total
+    return epoch_loss, epoch_acc
+
+def validate(model, val_loader, criterion, device):
+    model.eval()
+    running_loss = 0.0
+    correct = 0
+    total = 0
+
+    with torch.no_grad():
+        for images, labels in val_loader:
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+
+            running_loss += loss.item() * images.size(0)
+            _, predicted = torch.max(outputs, 1)
+            correct += (predicted == labels).sum().item()
+            total += labels.size(0)
+
+    val_loss = running_loss / total
+    val_acc = correct / total
+    return val_loss, val_acc
 
 def main():
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     data_dir = r"C:\Users\waltteri\projects\kurssit\syvaoppiminen\project_work\data\RODI-DATA\RODI-DATA\Train"
     train_loader, val_loader = get_dataloaders(data_dir, batch_size=32)
+
     model, criterion, optimizer = get_model(device=DEVICE, num_classes=2, lr=1e-3)
 
+    NUM_EPOCHS = 1  # Voit muuttaa
 
-    # Testataan batch
-    for images, labels in train_loader:
-        images, labels = images.to(DEVICE), labels.to(DEVICE)
-        outputs = model(images)
-        print("Images:", images.shape)
-        print("Outputs:", outputs.shape)
-        print("Labels:", labels.shape)
-        break
+    best_val_acc = 0.0
+    for epoch in range(NUM_EPOCHS):
+        train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, DEVICE)
+        val_loss, val_acc = validate(model, val_loader, criterion, DEVICE)
 
+        print(f"Epoch [{epoch+1}/{NUM_EPOCHS}]")
+        print(f"  Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f}")
+        print(f"  Val   Loss: {val_loss:.4f} | Val   Acc: {val_acc:.4f}")
+
+        # Tallennetaan paras malli
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            torch.save(model.state_dict(), "best_model.pth")
+
+    print(f"Training finished. Best validation accuracy: {best_val_acc:.4f}")
 
 if __name__ == "__main__":
     main()

@@ -81,12 +81,14 @@ def get_dataloaders(data_dir, batch_size=32, val_split=0.2, image_size=50, num_w
     train_loader = DataLoader(train_dataset,
                               batch_size=batch_size,
                               shuffle=True,
-                              num_workers=num_workers)
+                              num_workers=num_workers,
+                              pin_memory=True)
 
     val_loader = DataLoader(val_dataset,
                             batch_size=batch_size,
                             shuffle=False,
-                            num_workers=num_workers)
+                            num_workers=num_workers,
+                            pin_memory=True)
 
     return train_loader, val_loader
 

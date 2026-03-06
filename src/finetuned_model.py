@@ -10,12 +10,12 @@ import os
 import sys
 from sklearn.metrics import f1_score
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # Lisää projektin juuri polkuun
-from src.fish_data import get_dataloaders
+from src.data_finetuned import get_dataloaders
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_EPOCHS = 5
-BATCH_SIZE = 32
-IMAGE_SIZE = 224
+BATCH_SIZE = 128
+IMAGE_SIZE = 50
 LEARNING_RATE = 1e-4
 VAL_SPLIT = 0.2
 DATA_DIR = r"C:\Users\waltteri\projects\kurssit\syvaoppiminen\project_work\data\RODI-DATA\RODI-DATA\Train"
@@ -136,8 +136,9 @@ def main():
     elapsed = end_time - start_time
     print(f"Aikaa kului loadereiden tekoon meni: {elapsed:.1f} sekuntia")
 
-    # Pos weight harvalle luokalle
+    # Pos weight harvalle luokalle. Voi koittaa muutakin painotusta. Nyt laskettu on varmaan liian pieni
     pos_weight = compute_pos_weight(train_loader)
+    pos_weight = torch.tensor([10], device=DEVICE)
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     # Malli ja optimizer

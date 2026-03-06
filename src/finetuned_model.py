@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import models
 import time
+import json
 import os
 import sys
 from sklearn.metrics import f1_score
@@ -14,7 +15,7 @@ from src.fish_data import get_dataloaders
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_EPOCHS = 5
 BATCH_SIZE = 32
-IMAGE_SIZE = 50
+IMAGE_SIZE = 224
 LEARNING_RATE = 1e-4
 VAL_SPLIT = 0.2
 DATA_DIR = r"C:\Users\waltteri\projects\kurssit\syvaoppiminen\project_work\data\RODI-DATA\RODI-DATA\Train"
@@ -49,6 +50,10 @@ def get_model():
 
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, num_epochs=NUM_EPOCHS):
+
+    best_f1 = 0
+    history = []
+
     for epoch in range(num_epochs):
         start_time = time.time()
         model.train()
@@ -94,9 +99,27 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
               f"Val Acc: {val_acc:.4f} | "
               f"Val F1: {val_f1:.4f}")
         
+        # tallenna metrics historiaan
+        history.append({
+            "epoch": epoch + 1,
+            "train_loss": train_loss,
+            "val_loss": val_loss,
+            "val_acc": val_acc,
+            "val_f1": val_f1
+        })
+
+        # tallenna paras malli
+        if val_f1 > best_f1:
+            best_f1 = val_f1
+            torch.save(model.state_dict(), "best_finetuned_model.pt")
+            print("Tallennettiin uusi paras malli")
+        
         end_time = time.time()
         elapsed = end_time - start_time
         print(f"Aikaa epokkiin meni: {elapsed:.1f} sekuntia")
+
+        with open("training_metrics_finetuned.json", "w") as f:
+            json.dump(history, f, indent=4)
 
 def main():
     start_time = time.time()

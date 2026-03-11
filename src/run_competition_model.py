@@ -47,13 +47,14 @@ def main():
             probs = torch.sigmoid(outputs).squeeze(1)  # todennäköisyys luokalle 1
 
             for path, prob in zip(paths, probs):
-                results.append((path, prob.item()))
-                print(f"{path} -> {prob.item():.4f}")
+                filename = os.path.basename(path)
+                results.append((filename, prob.item()))
+                print(f"{filename} -> {prob.item():.4f}")
 
     # Kirjoita CSV
     with open(OUTPUT_CSV, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["image_path", "prob_class1"])
+        writer.writerow(["img_name", "probability"])
         writer.writerows(results)
 
     print(f"Testi valmis. Tulokset tallennettu tiedostoon {OUTPUT_CSV}")

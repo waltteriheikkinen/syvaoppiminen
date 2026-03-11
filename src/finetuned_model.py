@@ -13,6 +13,7 @@ import sys
 from sklearn.metrics import f1_score
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # Lisää projektin juuri polkuun
 from src.data_finetuned import get_dataloaders
+from test_metrics import validate_with_metrics
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 NUM_EPOCHS = 20
@@ -35,7 +36,7 @@ def compute_pos_weight(train_loader):
 
 
 def get_model():
-    """Luo pretrained ResNet18 ja muokkaa viimeisen fc-layerin binääriluokkaan"""
+    """Luo pretrained ResNet18 ja vapauta kerroksia"""
     model = models.resnet18(weights=ResNet18_Weights.DEFAULT)
     
     # Freeze kaikki kerrokset
@@ -90,60 +91,63 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
             train_labels.extend(labels.cpu().numpy())
             train_preds.extend(preds.cpu().numpy())
     
-        train_loss /= len(train_loader.dataset)
-    
+        train_loss /= len(train_loader.dataset)    
         train_acc = (np.array(train_preds) == np.array(train_labels)).mean()
     
-        # Validointi
-        model.eval()
-        val_loss = 0
-        all_labels = []
-        all_preds = []
-    
-        with torch.no_grad():
-            for images, labels in val_loader:
-                images = images.to(DEVICE)
-                labels = labels.unsqueeze(1).float().to(DEVICE)
-    
-                outputs = model(images)
-                loss = criterion(outputs, labels)
-                val_loss += loss.item() * images.size(0)
-    
-                preds = (torch.sigmoid(outputs) > 0.5).long()
-                all_labels.extend(labels.cpu().numpy())
-                all_preds.extend(preds.cpu().numpy())
-    
-        val_loss /= len(val_loader.dataset)
-        val_acc = (np.array(all_preds) == np.array(all_labels)).mean()
-        val_f1 = f1_score(all_labels, all_preds)
-    
-        print(
-            f"Epoch {epoch+1}/{num_epochs} | "
-            f"Train Loss: {train_loss:.4f} | "
-            f"Val Loss: {val_loss:.4f} | "
-            f"Train Acc: {train_acc:.4f} | "
-            f"Val Acc: {val_acc:.4f} | "
-            f"Val F1: {val_f1:.4f}"
+        # Validate
+        metrics = validate_with_metrics(
+            model,
+            val_loader,
+            criterion,
+            DEVICE,
+            threshold=0.5
         )
+
+        print(f"\nEpoch [{epoch+1}/{num_epochs}]")
+        print(f"Train Loss: {train_loss:.4f}")
+        print(
+            f"Val Loss: {metrics['val_loss']:.4f} | "
+            f"Accuracy: {metrics['accuracy']:.4f} | "
+            f"F1 fish: {metrics['f1_fish']:.4f}"
+        )
+        print(
+            f"Precision fish: {metrics['precision_fish']:.4f} | "
+            f"Recall fish: {metrics['recall_fish']:.4f}"
+        )
+        print(
+            f"Precision non-fish: {metrics['precision_nonfish']:.4f} | "
+            f"Recall non-fish: {metrics['recall_nonfish']:.4f}"
+        )
+        print(
+            f"AUPRC: {metrics['auprc']:.4f} | "
+            f"AUROC: {metrics['auroc']:.4f}"
+        )
+
         
         # tallenna metrics historiaan
         history.append({
             "epoch": epoch + 1,
             "train_loss": train_loss,
-            "val_loss": val_loss,
-            "val_acc": val_acc,
-            "val_f1": val_f1
+            "val_loss": metrics['val_loss'],
+            "val_acc": metrics['accuracy'],
+            "val_f1": metrics['f1_fish'],
+            "precision_fish": metrics['precision_fish'],
+            "recall_fish": metrics['recall_fish'],
+            "precision_non-fish": metrics['precision_nonfish'],
+            "Recall_non-fish": metrics['recall_nonfish'],
+            "AUPRC": metrics['auprc'],
+            "AUROC": metrics['auroc']
         })
 
         # tallenna paras malli
-        if val_f1 > best_f1:
-            best_f1 = val_f1
+        if metrics['f1_fish'] > best_f1:
+            best_f1 = metrics['f1_fish']
             torch.save({
                 "epoch": epoch + 1,
-                "best_f1": best_f1,
+                "best_metric": best_f1,
                 "model_state_dict": model.state_dict()
             }, "best_finetuned_model.pt")
-            print("Tallennettiin uusi paras malli")
+            print("\nTALLENNETTIIN PARAS MALLI!\n")
         
         end_time = time.time()
         elapsed = end_time - start_time
@@ -151,6 +155,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
 
         with open("training_metrics_finetuned.json", "w") as f:
             json.dump(history, f, indent=4)
+
+        print("==================================================================")
 
 def main():
     start_time = time.time()

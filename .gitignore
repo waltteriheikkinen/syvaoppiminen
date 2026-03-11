@@ -7,3 +7,4 @@ trials*
 ~$*.pptx
 ~$*.docx
 ~$*.xlsx
+.ipynb_checkpoints/

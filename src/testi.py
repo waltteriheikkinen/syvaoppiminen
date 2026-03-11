@@ -30,6 +30,7 @@ def main():
     data_dir = r"C:\Users\miika\Desktop\koulujutut\deeplearning\syvaoppiminen\data\RODI-DATA\RODI-DATA\Train"
     train_loader, val_loader = get_dataloaders(data_dir, image_size=50, batch_size=32)
 
+    print('jap')
     # Tulostetaan shape ja muutama esimerkkikuva treenistä
     for images, labels in train_loader:
         print('train_loader:')

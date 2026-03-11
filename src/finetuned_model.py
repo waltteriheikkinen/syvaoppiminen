@@ -114,7 +114,6 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
                 all_preds.extend(preds.cpu().numpy())
     
         val_loss /= len(val_loader.dataset)
-    
         val_acc = (np.array(all_preds) == np.array(all_labels)).mean()
         val_f1 = f1_score(all_labels, all_preds)
     
@@ -139,7 +138,11 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
         # tallenna paras malli
         if val_f1 > best_f1:
             best_f1 = val_f1
-            torch.save(model.state_dict(), "best_finetuned_model.pt")
+            torch.save({
+                "epoch": epoch + 1,
+                "best_f1": best_f1,
+                "model_state_dict": model.state_dict()
+            }, "best_finetuned_model.pt")
             print("Tallennettiin uusi paras malli")
         
         end_time = time.time()

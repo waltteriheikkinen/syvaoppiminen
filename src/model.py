@@ -16,7 +16,7 @@ from src.data_model import get_dataloaders
 from test_metrics import validate_with_metrics
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-NUM_EPOCHS = 5
+NUM_EPOCHS = 20
 BATCH_SIZE = 32
 IMAGE_SIZE = 224
 LEARNING_RATE = 1e-4

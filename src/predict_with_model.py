@@ -15,16 +15,6 @@ BATCH_SIZE = 32
 NUM_WORKERS = 4
 IMAGE_SIZE = 224
 
-
-def load_trained_model():
-    """Lataa koulutettu malli testiä varten"""
-    model = get_model()
-    checkpoint = torch.load(MODEL_PATH, map_location=DEVICE)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    model.eval()
-    return model
-
-
 def main():
     # Luo dataset ja dataloader
     dataset = TestDataset(IMAGE_DIR, image_size=IMAGE_SIZE)
@@ -35,7 +25,11 @@ def main():
         num_workers=NUM_WORKERS
     )
 
-    model = load_trained_model()
+    model = get_model()
+    checkpoint = torch.load(MODEL_PATH, map_location=DEVICE)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    model.eval()
+    
     results = []
 
     print(f"Löytyi {len(dataset)} kuvaa. Aloitetaan testi...")

@@ -4,18 +4,20 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import json
 import sys
 import os
 
 # Add project root to sys.path for module imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.fish_data_uusi import get_dataloaders
+from src.data_random_weights import get_dataloaders
 from pathlib import Path
 from tqdm import tqdm
 from torch.utils.data import WeightedRandomSampler, Subset, DataLoader
 from sklearn.metrics import roc_auc_score, average_precision_score
 
+OUTPUT_DIR = Path("../outputs")
 
 class ImprovedCNN(nn.Module):
     """
@@ -291,6 +293,8 @@ def run_training(model, train_loader, val_loader, criterion, optimizer, device,
     recall_scores = []
     f1_scores = []
 
+    history = []
+
     for epoch in range(num_epochs):
         # Train for one epoch
         train_loss, train_acc = train_one_epoch(
@@ -346,11 +350,29 @@ def run_training(model, train_loader, val_loader, criterion, optimizer, device,
                 "epoch": epoch + 1,
                 "model_state_dict": model.state_dict(),
                 "best_f1": best_val_f1
-            }, model_name)
+            }, OUTPUT_DIR / model_name)
             print("  --> Improvement, saving model")
         else:
             epochs_no_improve += 1
             print(f"  --> No improvement ({epochs_no_improve}/{patience})")
+
+        # tallenna metrics historiaan
+        history.append({
+            "epoch": epoch + 1,
+            "train_loss": train_loss,
+            "val_loss": metrics['val_loss'],
+            "val_acc": metrics['accuracy'],
+            "val_f1": metrics['f1_fish'],
+            "precision_fish": metrics['precision_fish'],
+            "recall_fish": metrics['recall_fish'],
+            "precision_non-fish": metrics['precision_nonfish'],
+            "Recall_non-fish": metrics['recall_nonfish'],
+            "AUPRC": metrics['auprc'],
+            "AUROC": metrics['auroc']
+        })
+
+        with open(OUTPUT_DIR / "training_metrics_model_random_weights.json", "w") as f:
+            json.dump(history, f, indent=4)
 
         # Early stopping
         if epochs_no_improve >= patience:
@@ -499,7 +521,7 @@ def main():
     # Detect device, set data path
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(DEVICE)
-    data_dir = Path("data/RODI-DATA/RODI-DATA/Train")
+    data_dir = Path("../data/RODI-DATA/RODI-DATA/Train")
     
     # Set hyperparameters for final model training, train final model
     threshold = 0.7

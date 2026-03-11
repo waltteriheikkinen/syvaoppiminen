@@ -1,0 +1,141 @@
+# src/data/data_loader.py
+
+import torch
+from torch.utils.data import DataLoader, random_split
+from torchvision import datasets, transforms
+
+class FishBinaryDataset(torch.utils.data.Dataset):
+    """
+    Wrapper ImageFolder-datasetin ympärille, joka muuntaa kaikki luokat
+    binary-luokiksi: 1 = fish, 0 = not fish
+    """
+    def __init__(self, dataset):
+        self.dataset = dataset
+        if 'fish' not in self.dataset.class_to_idx:
+            raise ValueError("Dataset does not contain class 'fish'")
+        self.fish_class_idx = self.dataset.class_to_idx['fish']
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        img, label = self.dataset[idx]
+        label = 1 if label == self.fish_class_idx else 0
+        return img, label
+
+
+def get_dataloaders(data_dir, batch_size=32, val_split=0.2, image_size=50, num_workers=4):
+    """
+    Luo train ja validation dataloaderit kuvien binary-luokitteluun (fish vs not fish)
+    Kuvasuhde säilytetään Resize + Crop -kombinaatiolla.
+    """
+
+    # ======================
+    # Transformit
+    # ======================
+
+    # Treeni: resize, satunnainen crop, augmentointi
+    train_transforms = transforms.Compose([
+        ResizeWithPadding(image_size),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(15),               # ±15° kierto
+        transforms.ColorJitter(brightness=0.05,       # Brightness ±5%
+                           contrast=0.1,             # Contrast ±10%
+                           saturation=0.2,           # Saturation ±20%
+                           hue=0.05),                # Hue ±5%
+        transforms.RandomAffine(degrees=0,           # Ei lisäkiertoa, vain translate/skew
+                            translate=(0.1, 0.1)),   # Siirto ±10% x- ja y-suunnassa
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406],
+                             [0.229, 0.224, 0.225])
+    ])
+
+    # Validointi
+    val_transforms = transforms.Compose([
+        ResizeWithPadding(image_size),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406],
+                             [0.229, 0.224, 0.225])
+    ])
+
+    # ======================
+    # Dataset
+    # ======================
+    full_dataset = datasets.ImageFolder(root=data_dir)
+
+    binary_dataset = FishBinaryDataset(full_dataset)
+
+    val_size = int(len(binary_dataset) * val_split)
+    train_size = len(binary_dataset) - val_size
+
+    train_indices, val_indices = random_split(
+        range(len(binary_dataset)), 
+        [train_size, val_size]
+    )
+
+    train_dataset = torch.utils.data.Subset(
+        FishBinaryDataset(
+            datasets.ImageFolder(root=data_dir, transform=train_transforms)
+        ),
+        train_indices.indices
+    )
+
+    val_dataset = torch.utils.data.Subset(
+        FishBinaryDataset(
+            datasets.ImageFolder(root=data_dir, transform=val_transforms)
+        ),
+        val_indices.indices
+    )
+
+    # ======================
+    # DataLoaders
+    # ======================
+    train_loader = DataLoader(train_dataset,
+                              batch_size=batch_size,
+                              shuffle=True,
+                              num_workers=num_workers,
+                              pin_memory=True)
+
+    val_loader = DataLoader(val_dataset,
+                            batch_size=batch_size,
+                            shuffle=False,
+                            num_workers=num_workers,
+                            pin_memory=True)
+
+    return train_loader, val_loader
+
+
+import torch
+from torchvision import transforms
+from PIL import Image
+
+class ResizeWithPadding:
+    def __init__(self, target_size=50):
+        self.target_size = target_size
+
+    def __call__(self, img):
+        w, h = img.size
+        
+        # Skaalauskerroin
+        scale = self.target_size / max(w, h)
+        new_w = int(w * scale)
+        new_h = int(h * scale)
+
+        # Resize säilyttäen aspect ratio
+        img = img.resize((new_w, new_h), Image.BILINEAR)
+
+        # Luodaan musta taustakuva 50x50
+        new_img = Image.new("RGB", (self.target_size, self.target_size))
+        
+        # Keskitetään kuva
+        paste_x = (self.target_size - new_w) // 2
+        paste_y = (self.target_size - new_h) // 2
+        new_img.paste(img, (paste_x, paste_y))
+
+        return new_img
+
+
+transform = transforms.Compose([
+    ResizeWithPadding(50),
+    transforms.ToTensor()
+])

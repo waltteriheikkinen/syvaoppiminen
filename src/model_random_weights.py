@@ -258,7 +258,7 @@ def validate_with_metrics(model, val_loader, criterion, device, threshold=0.7):
 # Full training loop with early stopping and LR scheduler
 # =========================
 def run_training(model, train_loader, val_loader, criterion, optimizer, device,
-                 num_epochs=50, patience=10, threshold=0.7, model_name="model.pt"):
+                 num_epochs=50, patience=10, threshold=0.7, model_name="model_random_weights.pt"):
     """
     Train the model for multiple epochs with validation, early stopping, and LR scheduling.
     Input:
@@ -450,7 +450,7 @@ def train_final_model(device, data_dir, threshold, pos_weight, lr, num_epochs, p
         patience: int, number of epochs to wait for improvement before early stopping
         batch_size: int, batch size for training and validation DataLoaders       
     Output:
-        None (model saved to 'model.pt')
+        None (model saved to 'model_random_weights.pt')
     """
     
 
@@ -485,7 +485,7 @@ def train_final_model(device, data_dir, threshold, pos_weight, lr, num_epochs, p
         num_epochs=num_epochs,
         patience=patience,
         threshold=threshold,
-        model_name="model.pt"
+        model_name="model_random_weights.pt"
     )
 
     print("\n===== FINAL RESULTS =====")

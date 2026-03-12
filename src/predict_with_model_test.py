@@ -6,6 +6,7 @@ from pathlib import Path
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from PIL import Image
+import json
 from sklearn.metrics import (
     f1_score, precision_score, recall_score, accuracy_score,
     roc_auc_score, average_precision_score
@@ -21,6 +22,7 @@ from src.model import get_model, DEVICE  # oletetaan, että mallin luonti löyty
 MODEL_PATH = Path("../outputs/model.pt")
 IMAGE_DIR = Path("../data/RODI-DATA/RODI-DATA/Train")
 OUTPUT_CSV = "../outputs/predictions_test.csv"
+METRICS_DIR = Path("../outputs/")
 
 BATCH_SIZE = 32
 NUM_WORKERS = 4
@@ -133,6 +135,24 @@ def main():
     auroc = roc_auc_score(all_labels, all_probs)
     auprc = average_precision_score(all_labels, all_probs)
 
+    test_metrics = []
+
+     # tallenna metrics historiaan
+    test_metrics.append({
+        "f1_fish":            f1_fish,
+        "precision_fish":     precision_fish,
+        "recall_fish":        recall_fish,
+        "precision_non-fish": precision_nonfish,
+        "Recall_non-fish":    recall_nonfish,
+        "accuracy":           accuracy,
+        "AUPRC":              auprc,
+        "AUROC":              auroc
+    })
+
+    with open(METRICS_DIR / "test_metrics_model.json", "w") as f:
+        json.dump(test_metrics, f, indent=4)
+
+
     print("\n--- Dataset metrics ---")
     print(f"F1 (fish): {f1_fish:.4f}")
     print(f"Precision (fish): {precision_fish:.4f}")
@@ -153,6 +173,7 @@ def main():
 
     print(f"\nTesti valmis. Tulokset tallennettu tiedostoon {OUTPUT_CSV}")
 
+        
 
 if __name__ == "__main__":
     main()

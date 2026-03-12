@@ -1,0 +1,12 @@
+[
+    {
+        "f1_fish": 0.99581589958159,
+        "precision_fish": 0.9916666666666667,
+        "recall_fish": 1.0,
+        "precision_non-fish": 1.0,
+        "Recall_non-fish": 0.9999527097323371,
+        "accuracy": 0.9999529743710323,
+        "AUPRC": 1.0,
+        "AUROC": 1.0
+    }
+]

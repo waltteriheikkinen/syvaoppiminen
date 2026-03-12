@@ -17,7 +17,7 @@ from tqdm import tqdm
 from torch.utils.data import WeightedRandomSampler, Subset, DataLoader
 from sklearn.metrics import roc_auc_score, average_precision_score
 
-OUTPUT_DIR = Path("../outputs")
+OUTPUT_DIR = Path("Pauluoutputs")
 
 class ImprovedCNN(nn.Module):
     """
@@ -401,7 +401,7 @@ def hyperparameter_search(device, data_dir):
 
     thresholds = [0.6, 0.65, 0.7, 0.75, 0.8]
     pos_weights = [1, 2, 5, 10]
-    lrs = [1e-3, 5e-4, 1e-4]
+    lrs = [5e-3, 1e-3, 5e-4, 1e-4]
     num_epochs = 20
 
     batch_size = 128 if device.type == "cuda" else 32
@@ -521,12 +521,12 @@ def main():
     # Detect device, set data path
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(DEVICE)
-    data_dir = Path("../data/RODI-DATA/RODI-DATA/Train")
+    data_dir = Path("data/RODI-DATA/RODI-DATA/Train")
     
     # Set hyperparameters for final model training, train final model
-    threshold = 0.7
+    threshold = 0.75
     pos_weight = 1
-    lr = 0.001
+    lr = 0.005
     num_epochs = 100
     patience = 10
     batch_size = 128 if DEVICE.type == "cuda" else 32

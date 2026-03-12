@@ -507,7 +507,7 @@ def train_final_model(device, data_dir, threshold, pos_weight, lr, num_epochs, p
         num_epochs=num_epochs,
         patience=patience,
         threshold=threshold,
-        model_name="model_random_weights.pt"
+        model_name=f"model_random_weights_lr_{lr}_th{threshold}.pt"
     )
 
     print("\n===== FINAL RESULTS =====")
@@ -517,16 +517,16 @@ def train_final_model(device, data_dir, threshold, pos_weight, lr, num_epochs, p
 # =========================
 # Main function
 # =========================
-def main():
+def main(lr=0.001, threshold=0.7):
     # Detect device, set data path
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(DEVICE)
     data_dir = Path("data/RODI-DATA/RODI-DATA/Train")
     
     # Set hyperparameters for final model training, train final model
-    threshold = 0.75
+    #threshold = threshold
     pos_weight = 1
-    lr = 0.005
+    #lr = lr
     num_epochs = 100
     patience = 10
     batch_size = 128 if DEVICE.type == "cuda" else 32
